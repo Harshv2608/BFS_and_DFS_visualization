@@ -1,49 +1,71 @@
-// script.js
+// ===============================
+// Graph Traversal Visualizer JS
+// ===============================
 
-// Graph represented as an adjacency list
+// Graph represented as adjacency list
 let graph = {};
 let positions = {};
 let visited = {};
+let traversalOrder = [];
+let isAnimating = false;
 
 // Canvas setup
 const canvas = document.getElementById("graph-canvas");
 const ctx = canvas.getContext("2d");
 
-// Colors for nodes
+// Node colors
 const colors = {
-  unvisited: "#aaa",
-  visited: "#4caf50",
-  current: "#ff5722",
+  unvisited: "#94a3b8",
+  visited: "#22c55e",
+  current: "#f97316",
 };
 
-// Add a node to the graph with random positions for simplicity
+// ===============================
+// Node & Edge Creation
+// ===============================
+
 function addNode() {
-  const node = document.getElementById("node").value;
-  if (node && !(node in graph)) {
-    graph[node] = [];
-    visited[node] = false;
-    positions[node] = { x: Math.random() * 400 + 50, y: Math.random() * 400 + 50 };
-    drawGraph();
-  }
+  const nodeInput = document.getElementById("node");
+  const node = nodeInput.value.trim();
+
+  if (!node || node in graph) return;
+
+  graph[node] = [];
+  visited[node] = false;
+
+  positions[node] = {
+    x: Math.random() * (canvas.width - 100) + 50,
+    y: Math.random() * (canvas.height - 100) + 50,
+  };
+
+  nodeInput.value = "";
+  drawGraph();
 }
 
-// Add an edge to the graph
 function addEdge() {
-  const edgeInput = document.getElementById("edge").value;
-  const [u, v] = edgeInput.split(" ");
-  if (u && v && u in graph && v in graph) {
-    graph[u].push(v);
-    graph[v].push(u); // For undirected graph
-    drawGraph();
-  }
+  const edgeInput = document.getElementById("edge");
+  const [u, v] = edgeInput.value.trim().split(" ");
+
+  if (!u || !v || !(u in graph) || !(v in graph)) return;
+
+  if (!graph[u].includes(v)) graph[u].push(v);
+  if (!graph[v].includes(u)) graph[v].push(u); // Undirected
+
+  edgeInput.value = "";
+  drawGraph();
 }
 
-// Draw graph with nodes and edges
+// ===============================
+// Drawing Graph
+// ===============================
+
 function drawGraph() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Draw edges
-  ctx.strokeStyle = "#333";
+  ctx.strokeStyle = "#334155";
+  ctx.lineWidth = 2;
+
   for (const u in graph) {
     for (const v of graph[u]) {
       ctx.beginPath();
@@ -55,74 +77,113 @@ function drawGraph() {
 
   // Draw nodes
   for (const node in graph) {
-    ctx.fillStyle = visited[node] ? colors.visited : colors.unvisited;
-    ctx.beginPath();
-    ctx.arc(positions[node].x, positions[node].y, 18, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Draw node label
-    ctx.fillStyle = "white";
-    ctx.font = "bold 14px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(node, positions[node].x, positions[node].y + 5);
+    drawNode(node, visited[node] ? colors.visited : colors.unvisited);
   }
 }
 
-// BFS animation
+function drawNode(node, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(positions[node].x, positions[node].y, 20, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(node, positions[node].x, positions[node].y);
+}
+
+// ===============================
+// BFS
+// ===============================
+
 async function startBFS() {
-  const startNode = prompt("Enter the starting node for BFS:");
-  if (startNode in graph) {
-    visited = resetVisited();
-    await animateBFS(startNode);
-  }
-}
+  if (isAnimating) return;
 
-// Animate BFS traversal
-async function animateBFS(startNode) {
+  const startNode = prompt("Enter the starting node for BFS:");
+  if (!(startNode in graph)) return;
+
+  resetTraversal();
+  isAnimating = true;
+
   let queue = [startNode];
   visited[startNode] = true;
 
   while (queue.length > 0) {
     const node = queue.shift();
+
     highlightNode(node, colors.current);
+    traversalOrder.push(node);
+    updateTraversalDisplay();
+
+    await sleep(getSpeed());
 
     for (let neighbor of graph[node]) {
       if (!visited[neighbor]) {
-        queue.push(neighbor);
         visited[neighbor] = true;
+        queue.push(neighbor);
       }
     }
 
-    await sleep(1000); // Wait for 1 second
     highlightNode(node, colors.visited);
   }
+
+  isAnimating = false;
 }
 
-// DFS animation
+// ===============================
+// DFS
+// ===============================
+
 async function startDFS() {
+  if (isAnimating) return;
+
   const startNode = prompt("Enter the starting node for DFS:");
-  if (startNode in graph) {
-    visited = resetVisited();
-    await animateDFS(startNode);
-  }
+  if (!(startNode in graph)) return;
+
+  resetTraversal();
+  isAnimating = true;
+
+  await dfsRecursive(startNode);
+
+  isAnimating = false;
 }
 
-// Animate DFS traversal
-async function animateDFS(node) {
+async function dfsRecursive(node) {
   visited[node] = true;
-  highlightNode(node, colors.current);
 
-  await sleep(1000); // Wait for 1 second
+  highlightNode(node, colors.current);
+  traversalOrder.push(node);
+  updateTraversalDisplay();
+
+  await sleep(getSpeed());
+
   for (let neighbor of graph[node]) {
     if (!visited[neighbor]) {
-      await animateDFS(neighbor);
+      await dfsRecursive(neighbor);
     }
   }
 
   highlightNode(node, colors.visited);
 }
 
-// Reset visited nodes
+// ===============================
+// Helper Functions
+// ===============================
+
+function highlightNode(node, color) {
+  drawGraph(); // redraw full graph first
+  drawNode(node, color);
+}
+
+function resetTraversal() {
+  traversalOrder = [];
+  visited = resetVisited();
+  updateTraversalDisplay();
+  drawGraph();
+}
+
 function resetVisited() {
   let reset = {};
   for (let node in graph) {
@@ -131,19 +192,30 @@ function resetVisited() {
   return reset;
 }
 
-// Highlight a node with a given color
-function highlightNode(node, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(positions[node].x, positions[node].y, 18, 0, 2 * Math.PI);
-  ctx.fill();
-
-  ctx.fillStyle = "white";
-  ctx.font = "bold 14px Arial";
-  ctx.fillText(node, positions[node].x, positions[node].y + 5);
+function updateTraversalDisplay() {
+  const output = document.getElementById("traversalOutput");
+  if (traversalOrder.length === 0) {
+    output.innerText = "No traversal yet";
+  } else {
+    output.innerText = traversalOrder.join(" → ");
+  }
 }
 
-// Utility function to pause execution
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getSpeed() {
+  return parseInt(document.getElementById("speedControl").value);
+}
+
+function resetGraph() {
+  graph = {};
+  positions = {};
+  visited = {};
+  traversalOrder = [];
+  isAnimating = false;
+
+  document.getElementById("traversalOutput").innerText = "No traversal yet";
+  drawGraph();
 }
