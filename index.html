@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graph Traversal Visualizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Graph Traversal Visualizer</h1>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <label for="node">Node:</label>
+      <input type="text" id="node" placeholder="Enter node value" required>
+      <button onclick="addNode()">Add Node</button>
+
+      <label for="edge">Edge (u, v):</label>
+      <input type="text" id="edge" placeholder="Enter edge as u v" required>
+      <button onclick="addEdge()">Add Edge</button>
+    </div>
+
+    <!-- Canvas for Graph Visualization -->
+    <canvas id="graph-canvas" width="400" height="400"></canvas>
+
+    <!-- Traversal Buttons -->
+    <div class="traversal-buttons">
+      <button onclick="startBFS()">Start BFS</button>
+      <button onclick="startDFS()">Start DFS</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
